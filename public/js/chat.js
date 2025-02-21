@@ -1,4 +1,4 @@
-const socket = io();
+const socket = io(chatroom-production-c65b.up.railway.app);
 
 // Elements
 const $messageForm = document.querySelector("#message-form");

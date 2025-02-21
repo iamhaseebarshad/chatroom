@@ -8,142 +8,144 @@ const $sendLocationButton = document.querySelector("#send-location");
 const $messages = document.querySelector("#messages");
 
 // Templates
-
 const messageTemplate = document.querySelector("#message-template").innerHTML;
-const locationTemplate = document.querySelector(
-  "#locmessage-template"
-).innerHTML;
+const locationTemplate = document.querySelector("#locmessage-template").innerHTML;
 const sidebarTemplate = document.querySelector("#sidebar-template").innerHTML;
 
 // Options
-const { username, room } = Qs.parse(location.search, {
-  ignoreQueryPrefix: true,
-});
+const { username, room } = Qs.parse(location.search, { ignoreQueryPrefix: true });
 
+// Auto-scroll function (Improved version)
 const autoScroll = () => {
-  // New message element
-  const $newMessage = $messages.lastElementChild;
+    const $newMessage = $messages.lastElementChild;
 
-  // hight of the new message
-  const newMessageStyle = getComputedStyle($newMessage);
-  const newMessageMargin = parseInt(newMessageStyle.marginBottom);
-  const newMessageHeight = $newMessage.offsetHeight + newMessageMargin;
+    if ($newMessage) {
+        const newMessageStyles = getComputedStyle($newMessage);
+        const newMessageMargin = parseInt(newMessageStyles.marginBottom);
+        const newMessageHeight = $newMessage.offsetHeight + newMessageMargin;
 
-  // visible height
-  const visibleHeight = $messages.offsetHeight;
+        const visibleHeight = $messages.offsetHeight;
+        const containerHeight = $messages.scrollHeight;
+        const scrollOffset = $messages.scrollTop + visibleHeight;
 
-  // height of messages container
-  const containerHeight = $messages.scrollHeight;
-
-  // how far have I scrolled?
-  const scrollOffset = $messages.scrollTop + visibleHeight;
-
-  if (containerHeight - newMessageHeight <= scrollOffset) {
-    $messages.scrollTop = $messages.scrollHeight;
-  }
+        // Scroll to bottom if user is near the bottom
+        if (containerHeight - newMessageHeight <= scrollOffset + 100) {
+            $messages.scrollTo({
+                top: containerHeight,
+                behavior: 'smooth' // Smooth scrolling effect
+            });
+        } else if (scrollOffset >= containerHeight - visibleHeight - 10) {
+            // If already at the bottom, keep auto-scrolling
+            $messages.scrollTop = containerHeight;
+        }
+    }
 };
 
-// server (emit) -> client (receive) - countUpdated
-// client (emit) -> server (receive) - increment
+// Local Storage Functions
+const saveMessagesToCache = (messages) => {
+    localStorage.setItem(`chatMessages-${room}`, JSON.stringify(messages));
+};
 
-socket.on("message", (message) => {
-  // console.log(message);
-  const html = Mustache.render(messageTemplate, {
-    username: message.username,
-    message: message.text,
-    createdAt: moment(message.createdAt).format("h:mm a"),
-  });
-  $messages.insertAdjacentHTML("beforeend", html);
-  autoScroll();
+const loadMessagesFromCache = () => {
+    const cachedMessages = JSON.parse(localStorage.getItem(`chatMessages-${room}`)) || [];
+    cachedMessages.forEach((message) => displayMessage(message, message.username === username));
+    autoScroll();  // Ensure the scroll is set correctly after loading cached messages
+};
+
+// Display Message Function (Handles admin messages and "You")
+const displayMessage = (message, isCurrentUser) => {
+    const nameToDisplay = isCurrentUser ? "You" : message.username;
+    const messageClass = message.username === "Admin" ? "message--admin" : "";
+
+    const html = Mustache.render(messageTemplate, {
+        username: nameToDisplay,
+        message: message.text,
+        createdAt: moment(message.createdAt).format("h:mm a"),
+        messageClass: messageClass,
+    });
+
+    $messages.insertAdjacentHTML("beforeend", html);
+
+    // Call autoScroll for smooth scrolling after adding a new message
+    autoScroll();
+};
+
+// Socket.IO Event Handlers
+socket.on("connect", () => {
+    console.log("Connected to server!"); // Helpful debug message
+
+    socket.emit("join", { username, room }, (error) => {
+        if (error) {
+            alert(error);
+            location.href = "/";
+        } else {
+            loadMessagesFromCache();
+        }
+    });
 });
 
-socket.on("locationMessage", (url) => {
-  // console.log(url.username);
-  const html = Mustache.render(locationTemplate, {
-    username: url.username,
-    url: url.url,
-    createdAt: moment(url.createdAt).format("h:mm a"),
-  });
-  $messages.insertAdjacentHTML("beforeend", html);
-  autoScroll();
+socket.on("message", (message) => {
+    const isCurrentUser = message.username === username;
+    displayMessage(message, isCurrentUser);
+    let messages = JSON.parse(localStorage.getItem(`chatMessages-${room}`)) || [];
+    messages.push(message);
+    saveMessagesToCache(messages);
+});
+
+socket.on("locationMessage", (locationData) => {
+    const isCurrentUser = locationData.username === username;
+    displayMessage(locationData, isCurrentUser);
 });
 
 socket.on("roomData", ({ room, users }) => {
-  const html = Mustache.render(sidebarTemplate, {
-    room: room,
-    users: users,
-  });
-  document.querySelector("#sidebar").innerHTML = html;
+    const html = Mustache.render(sidebarTemplate, { room, users });
+    document.querySelector("#sidebar").innerHTML = html;
+    autoScroll(); // Ensure sidebar changes do not affect scroll
 });
 
+socket.on("disconnect", () => {
+    console.log("Disconnected from server");
+});
+
+// Event Listeners
 $messageForm.addEventListener("submit", (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  // disable form after submit
-  $messageFormButton.setAttribute("disabled", "disabled");
+    const message = $messageFormInput.value.trim();
+    if (!message) return;
 
-  //disable
+    $messageFormButton.setAttribute("disabled", "disabled");
 
-  const message = $messageFormInput.value;
+    socket.emit("sendMessage", message, (error) => {
+        $messageFormButton.removeAttribute("disabled");
+        $messageFormInput.value = "";
+        $messageFormInput.focus();
 
-  if (message === "") {
-    // enable form after submit
-    $messageFormButton.removeAttribute("disabled");
-    return;
-  }
-  socket.emit("sendMessage", message, (error) => {
-    // enable form after submit
-    $messageFormButton.removeAttribute("disabled");
-    // clear input
-    $messageFormInput.value = "";
-    // focus input
-    $messageFormInput.focus();
-    if (error) {
-      return console.log(error);
-    }
-    // console.log("Message Delivered");
-  });
+        if (error) {
+            return console.error("Error:", error);
+        }
+    });
 });
 
-document.querySelector("#send-location").addEventListener("click", (e) => {
-  e.preventDefault();
-  if (!navigator.geolocation) {
-    return alert("Geolocation is not supported by your browser");
-  }
-
-  navigator.permissions.query({ name: "geolocation" }).then((res) => {
-    // console.log(res);
-    if (res.state === "denied") {
-      return alert("Please allow permission to send location!");
+$sendLocationButton.addEventListener("click", () => {
+    if (!navigator.geolocation) {
+        return alert("Geolocation is not supported by your browser.");
     }
-  });
 
-  navigator.geolocation.getCurrentPosition((position) => {
-    // console.log(position);
     $sendLocationButton.setAttribute("disabled", "disabled");
 
-    socket.emit(
-      "sendLocation",
-      {
-        Latitude: position.coords.latitude,
-        Longitude: position.coords.longitude,
-      },
-      () => {
-        $sendLocationButton.removeAttribute("disabled");
-        // console.log("Location Shared");
-      }
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            socket.emit("sendLocation", {
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+            }, () => {
+                $sendLocationButton.removeAttribute("disabled");
+            });
+        },
+        (error) => {
+            alert("Failed to get location. Please allow location access.");
+            $sendLocationButton.removeAttribute("disabled");
+        }
     );
-  });
 });
-
-socket.emit("join", { username, room }, (error) => {
-  if (error) {
-    alert(error);
-    location.href = "/";
-  }
-});
-
-// document.querySelector("#increment").addEventListener("click", (e) => {
-//   console.log("clicked");
-//   socket.emit("increment");
-// });

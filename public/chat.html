@@ -1,68 +1,100 @@
 <!DOCTYPE html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
+  <head>
+    <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat App</title>
-    <link rel="icon" href="./img/favicon.png">
-    <link rel="stylesheet" href="./css/styles.css">
-</head>
+    <title>Chat Room | Haseeb</title>
+    <link rel="icon" href="./img/favicon.png" />
+    <link rel="stylesheet" href="./css/styles.css" />
 
-<body>
+  </head>
+
+  <body>
+    <div class="unsupported-device">
+      <p>Your device is not supported.
+       </p>
+  </div>
     <div class="chat">
-        <div id="sidebar" class="chat__sidebar">
+      <div id="sidebar" class="chat__sidebar"></div>
+      <div class="chat__main">
+        <div id="messages" class="chat__messages"></div>
 
+        <div class="compose">
+          <!-- <button id="increment">+1</button> -->
+          <form id="message-form">
+            <input
+              type="text"
+              name="message"
+              placeholder="Enter message"
+              autocomplete="off"
+            />
+            <button type="submit">Send</button>
+          </form>
+          <button1 id="send-location"></button1>
+     
         </div>
-        <div class="chat__main">
-            <div id="messages" class="chat__messages"></div>
-
-            <div class="compose">
-                <!-- <button id="increment">+1</button> -->
-                <form id="message-form">
-                    <input type="text" name="message" placeholder="Enter message" autocomplete="off">
-                    <button type="submit">Send</button>
-                </form>
-                <button id="send-location">Send Location</button>
-            </div>
-        </div>
-
+      </div>
     </div>
     <script id="message-template" type="text/html">
-        <div class="message">
-            <p>
-                <span class="message__name">{{username}}</span>
-                <span class="message__meta">{{createdAt}}</span> 
-            </p>
-            <p>{{message}}</p>    
-        </div>
+      <div class="message">
+        <p>
+          <span class="message__name">{{username}}</span>
+          <span class="message__meta">{{createdAt}}</span>
+        </p>
+        <p>{{message}}</p>
+      </div>
     </script>
 
     <script id="locmessage-template" type="text/html">
-        <div class="message">
-            <p>
-                <span class="message__name">{{username}}</span>
-                <span class="message__meta">{{createdAt}}</span> 
-            </p>
-            <p><a href="{{url}}" target="_blank" style="color: #7C5CBF;">My Current Location</a></p>    
-        </div>
+      <div class="message">
+        <p>
+          <span class="message__name">{{username}}</span>
+          <span class="message__meta">{{createdAt}}</span>
+        </p>
+        <p>
+        </p>
+      </div>
     </script>
 
     <script id="sidebar-template" type="text/html">
-        <h2 class="room-title" >Room: {{room}}</h2>
-        <h3 class="list-title" >Users</h3>
-        <ul class="users" >
-            {{#users}}
-                <li> {{username}} </li>
-            {{/users}}
-        </ul>
+      <h3 class="haseeb">
+       
+        <a href="https://haseebarhsaddev.vercel.app" target="_blank">
+          <button class="owner-button">Portfolio</button>
+        </a>
+        <p>Welcome to Chat Room!</p> <!-- Username before Welcome -->
+      </h3>
+    
+      <h2 class="room-title">Room: {{room}}</h2>
+      <h3 class="list-title">Users</h3>
+      <ul class="users">
+        {{#users}}
+        <li>{{username}}</li>
+        {{/users}}
+      </ul>
     </script>
-
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mustache.js/3.0.1/mustache.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qs/6.6.0/qs.min.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <script src="./js/chat.js"></script>
-</body>
+    <script>
+      function isMobileDevice() {
+          return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      }
+  
+      window.onload = function() {
+          if (isMobileDevice()) {
+              document.querySelector('.unsupported-device').style.display = 'flex';
+              document.querySelector('.centered-form').style.display = 'none';
+          } else {
+              document.querySelector('.unsupported-device').style.display = 'none';
+              document.querySelector('.centered-form').style.display = 'flex';
+          }
+      }
+  </script>
+  
+  </body>
 
 </html>

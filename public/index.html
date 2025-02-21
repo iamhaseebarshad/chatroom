@@ -4,7 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat App</title>
+    <title>Chat Room | Haseeb
+    </title>
     <link rel="icon" href="./img/favicon.png">
     <link rel="stylesheet" href="./css/styles.css">
 </head>
@@ -12,17 +13,30 @@
 <body>
     <div class="centered-form">
         <div class="centered-form__box">
-            <h1>Join</h1>
+            <h1>Create Room</h1>
             <form action="./chat.html">
-                <label>Display Name</label>
-                <input type="text" name="username" required>
-                <label>Room</label>
-                <input type="text" name="room" required>
-                <button>Join</button>
+                <input type="text" name="username" placeholder="Display Name" required>
+                <input type="text" name="room" placeholder="Room Name" required>
+                <button>Create</button>
             </form>
         </div>
 
     </div>
 </body>
+<script>
+    function isMobileDevice() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    }
+
+    window.onload = function() {
+        if (isMobileDevice()) {
+            document.querySelector('.unsupported-device').style.display = 'flex';
+            document.querySelector('.centered-form').style.display = 'none';
+        } else {
+            document.querySelector('.unsupported-device').style.display = 'none';
+            document.querySelector('.centered-form').style.display = 'flex';
+        }
+    }
+</script>
 
 </html>
